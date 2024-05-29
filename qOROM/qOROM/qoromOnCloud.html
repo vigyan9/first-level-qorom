@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>qOROM - On Cloud</title>
+		<link rel="stylesheet" href="./css/bootstrap.css">
+		<link rel="stylesheet" href="style.css">
+		<link rel="stylesheet" href="Q/Q.css">
+		<link rel="stylesheet" href="Q/Q-Circuit-Editor.css">
+		<!-- <link rel="stylesheet" href="assets/documentation.css"> -->
+
+		<!-- <script src="https://www.googletagmanager.com/gtag/js" async></script>
+		<script src="assets/ga.js"></script> -->
+		<script src="Q/Q.js"></script>
+		<script src="Q/Q-ComplexNumber.js"></script>
+		<script src="Q/Q-Matrix.js"></script>
+		<script src="Q/Q-Qubit.js"></script>
+		<script src="Q/Q-Gate.js"></script>
+		<script src="Q/Q-History.js"></script>
+		<script src="Q/Q-Circuit.js"></script>
+		<script src="Q/Q-Circuit-Editor.js"></script>
+		<!-- <script src="assets/navigation.js"></script> -->
+
+	</head>
+	<body>
+		<nav class="navbar bg-body-tertiary header">
+			<div class="container navbar-brand" style="margin-left: 30px;">
+			  
+				<img src="qOROM.svg" alt="Bootstrap" width="100" height="48">
+			  
+			</div>
+		</nav>
+		<main>
+
+		<h2 class="cloudHeader">Equivalent OpenQASM</h2>
+		<div id="outputTextarea" class="output_new"></div>
+		</main>
+		<script>
+
+function getQueryParam(param) {
+            var urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        var myVariable = decodeURIComponent(getQueryParam('data'));
+        //document.getElementById('displayVariable').innerText = myVariable;
+		
+
+		function convertToOpenQASM(textData) {
+			// Get the input text from the textarea
+			let inputText = textData;
+			inputText = inputText.replace(/-/g, '');
+			console.log(inputText)
+		   
+			// Split the input text into lines
+			let lines = inputText.split(/\r\n|\r|\n/); 
+			
+			// Remove empty lines and lines containing only whitespace
+			lines = lines.filter(line => line.trim() !== '');
+			
+		
+			// Count the number of non-empty lines
+			let lineCount = lines.length;
+		
+			// Generate qubits and classical bits based on the line count
+			let qubitDeclarations = '';
+			let cbitDeclarations = '';
+			for (let i = 0; i < lineCount; i++) {
+				qubitDeclarations += `qubit q[${i}];<br>`;
+				cbitDeclarations += `bit c[${i}];<br>`;
+			}
+		
+			// Define the OpenQASM gate mappings
+			const gateMappings = {
+				'H': 'h',
+				'I': 'id',
+				'X': 'x',
+				'Z': 'z',
+				'Y': 'y'
+			};
+		
+			let outputText = '';
+			for (let i = 0; i < lineCount; i++) {
+				let gatesApplied = lines[i].replace(/[HIXYZ]/g, match => gateMappings[match] + ` q[${i}];<br>`).trim();
+				outputText += gatesApplied + '<br>';
+			}
+			// Concatenate OpenQASM header, qubit and classical bit declarations, and gate code
+			let openQASMHeader = 'OPENQASM 3.0; <br> include "stdgates.inc"; <br>';
+			outputText = openQASMHeader + qubitDeclarations + cbitDeclarations + outputText;
+			
+		
+			// Add measurement statements for each qubit
+			let measurementStatements = '';
+			for (let i = 0; i < lineCount; i++) {
+				measurementStatements += `measure q[${i}] = c[${i}];<br>`;
+			}
+		
+			// outputText = outputText.replace(new RegExp(inputText, 'g'), '');
+			
+			// Display the converted code in a separate textarea or console.log it
+			document.getElementById('outputTextarea').innerHTML = outputText + '\n' + measurementStatements;
+			console.log(outputText + '\n' + measurementStatements);
+		}
+
+		convertToOpenQASM(myVariable)
+		</script>
+	</body>
+</html>

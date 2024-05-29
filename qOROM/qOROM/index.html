@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>qOROM </title>
+		<link rel="stylesheet" href="./css/bootstrap.css">
+		<link rel="stylesheet" href="style.css">
+		<link rel="stylesheet" href="Q/Q.css">
+		<link rel="stylesheet" href="Q/Q-Circuit-Editor.css">
+		<!-- <link rel="stylesheet" href="assets/documentation.css"> -->
+
+		<!-- <script src="https://www.googletagmanager.com/gtag/js" async></script>
+		<script src="assets/ga.js"></script> -->
+		<script src="Q/Q.js"></script>
+		<script src="Q/Q-ComplexNumber.js"></script>
+		<script src="Q/Q-Matrix.js"></script>
+		<script src="Q/Q-Qubit.js"></script>
+		<script src="Q/Q-Gate.js"></script>
+		<script src="Q/Q-History.js"></script>
+		<script src="Q/Q-Circuit.js"></script>
+		<script src="Q/Q-Circuit-Editor.js"></script>
+		<!-- <script src="assets/navigation.js"></script> -->
+
+	</head>
+	<body>
+		<nav class="navbar bg-body-tertiary header">
+			<div class="container navbar-brand" style="margin-left: 30px;">
+			  
+				<img src="qOROM.svg" alt="Bootstrap" width="100" height="48">
+			  
+			</div>
+		</nav>
+		<main>
+
+			<div class="alignment_2">
+				<button type="button" class="btn btn-success modify-button" id="openNewPageBtn" onclick="kamkar()">
+					Run On Cloud
+				</button>
+				<button type="button" class="btn btn-success modify-button" id="playground-apply-button" onclick="updatePlaygroundFromText()">
+					Run Locally
+				</button>
+				</div>
+
+			<div class="for-alignment">
+				
+
+			  <div class="alignment_1">
+                <div class="file_defined">source.qaram</div>
+				<div class="writeCode">
+                    <textarea class="source-code" placeholder="Type your code here..." id="playground-input"></textarea><br>
+				</div>
+			
+			
+		</div>
+			<div class='Q-circuit-palette' id="hide"></div>
+			<div class="flex_playground ">
+
+			<div class="Circuit_lebel" id="heading_playground1" >Circuit Visualizer</div>
+			<div id="playground"></div>
+
+
+			<div class="Circuit_lebel"  id="heading_playground2" >Output </div>
+			<pre class="bg-body-tertiary " style="padding-bottom: 20px ;"><samp id="playground-report" ></samp></pre>
+		</div>
+
+</div>
+
+		</main>
+		<script>
+
+
+
+
+//  Let’s place circuit palettes
+//  inside anything with the class 'Q-circuit-palette'.
+
+Array
+.from( document.querySelectorAll( '.Q-circuit-palette' ))
+.forEach( function( el ){
+
+	Q.Circuit.Editor.createPalette( el )
+})
+
+
+
+
+//  Hook up our input text field and “Apply” button.
+
+function applyButtonActivated(){
+
+	const button = document.getElementById( 'playground-apply-button' )
+	if( button && button.getAttribute( 'disabled' ) === null ) updatePlaygroundFromText()
+}
+
+let playgroundInputText = ''
+
+function hasTextInputUpdated(){
+
+	const 
+	input  = document.getElementById( 'playground-input' ).value
+	button = document.getElementById( 'playground-apply-button' )
+	
+	if( input === playgroundInputText ){
+
+		button.setAttribute( 'disabled', 'disabled' )
+	}
+	else button.removeAttribute( 'disabled' )
+}
+
+
+
+
+//  When our user edits the plain text input
+//  we want to update our interactive circuit
+//  and exported code accordingly.
+
+function updatePlaygroundFromText(){
+
+	const text = document.getElementById( 'playground-input' ).value
+	if( text !== playgroundInputText ){
+
+		playgroundInputText = text
+		document.getElementById( 'playground-apply-button' ).setAttribute( 'disabled', 'disabled' )
+	
+		const circuit = Q( text )
+		if( circuit instanceof Q.Circuit ){//+++++  This validation appears broken!
+
+			circuit.name = 'playground'
+			const domEl = document.getElementById( 'playground' )
+			if( domEl ){
+
+				while( domEl.lastChild ){
+					
+					domEl.removeChild( domEl.lastChild )
+				}
+				circuit.sort$()//  Is this still necessary??
+				circuit.toDom( domEl )				
+			}
+			circuit.evaluate$()
+		}
+		else {
+
+			updateCircuitParts( Q`I` )
+			console.log( 'There’s an error in your circuit!!' )
+		}
+	}
+}
+
+
+//  When our user edits the interactive circuit
+//  we want to update 
+
+function updatePlaygroundFromDom( circuit ){
+
+	const inputEl = document.getElementById( circuit.name +'-input' )
+	if( inputEl ){
+
+		const text = circuit.toText().substr( 1 )
+		inputEl.value = text
+		circuit.evaluate$()
+		// updateCircuitParts( circuit )
+		playgroundInputText = text
+	}
+}
+
+
+//  Update all the export code and probabilities report.
+
+function updateCircuitParts( circuit ){
+
+	// const braketEl = document.getElementById( circuit.name +'-braket' )
+	// if( braketEl ) braketEl.innerText = '\n'+ circuit.toAmazonBraket( true )
+
+	const latexEl = document.getElementById( circuit.name +'-latex' )
+	if( latexEl ) latexEl.innerText = '\n'+ circuit.toLatex( true )
+
+	const diagramEl = document.getElementById( circuit.name +'-diagram' )
+	if( diagramEl ) diagramEl.innerText = circuit.toDiagram( true )
+	
+	const textEl = document.getElementById( circuit.name +'-text' )
+	if( textEl ) textEl.innerText = circuit.toText()
+
+	const reportEl = document.getElementById( circuit.name +'-report' )
+	if( reportEl ) reportEl.innerText = circuit.report$()
+}
+
+
+
+
+
+window.addEventListener( 'DOMContentLoaded', function(){
+
+	updatePlaygroundFromText()
+	setInterval( hasTextInputUpdated, 100 )
+})
+
+
+
+
+
+
+
+
+//  EVALUATION.
+
+window.addEventListener( 'Q.Circuit.evaluate began', function( event ){
+
+	console.log( 
+
+		'\n\nBeginning evaluation for “'+ event.detail.circuit.name +'”\n'+
+		event.detail.circuit.toDiagram() +'\n\n'
+	)
+})
+window.addEventListener( 'Q.Circuit.evaluate progressed', function( event ){
+
+	const 
+	length       = 20,
+	percent      = Math.round( event.detail.progress * 100 ),
+	percentText  = ( ''+ percent ).padStart( 3 ) +'%',
+	barLength    = Math.round( length * event.detail.progress ),
+	barComplete  = ''.padStart( barLength, '█' ),
+	barRemaining = ''.padStart( length - barLength, '░' ),
+	opsTotal     = event.detail.operationsTotal,
+	opsCompleted = ( ''+ event.detail.operationsCompleted ).padStart( Math.log( opsTotal ) * Math.LOG10E + 1 | 0, ' ' )
+
+	console.log( 
+
+		barComplete  + 
+		barRemaining +' '+ 
+		percentText  +'   '+
+		opsCompleted +' of '+
+		opsTotal
+	)
+
+	
+	//  What’s the actual state of the circuit at this moment?
+	//  We should come back and do a cool animated version of this data :)
+
+	const state = event.detail.state
+	// console.log( 'state width', state.getWidth(), 'state height', state.getHeight() )
+	// console.log( 'state', state.toTsv() )
+})
+window.addEventListener( 'Q.Circuit.evaluate completed', function( event ){
+
+	console.log( 
+
+		'\nEvaluation completed for “'+ event.detail.circuit.name +'”'+
+		'\nwith these results:\n'+ event.detail.circuit.report$() +'\n\n\n'
+	)
+	
+	const 
+	circuit  = event.detail.circuit,
+	reportEl = document.getElementById( circuit.name +'-report' )
+
+	//if( reportEl ) reportEl.innerText = circuit.report$()
+	updateCircuitParts( circuit )
+})
+window.addEventListener( 'Q gui altered circuit', function( event ){
+
+	updatePlaygroundFromDom( event.detail.circuit )
+})
+
+
+
+
+
+
+
+		</script>
+		<script>
+			function convertToOpenQASM() {
+			// Get the input text from the textarea
+			let inputText = document.getElementById('playground-input').value;
+			inputText = inputText.replace(/-/g, '');
+			console.log(inputText)
+		   
+			// Split the input text into lines
+			let lines = inputText.split(/\r\n|\r|\n/); 
+			
+			// Remove empty lines and lines containing only whitespace
+			lines = lines.filter(line => line.trim() !== '');
+			console.log(lines)
+		
+			// Count the number of non-empty lines
+			let lineCount = lines.length;
+		
+			// Generate qubits and classical bits based on the line count
+			let qubitDeclarations = '';
+			let cbitDeclarations = '';
+			for (let i = 0; i < lineCount; i++) {
+				qubitDeclarations += `qubit q[${i}];\n`;
+				cbitDeclarations += `bit c[${i}];\n`;
+			}
+		
+			// Define the OpenQASM gate mappings
+			const gateMappings = {
+				'H': 'h',
+				'I': 'id',
+				'X': 'x',
+				'Z': 'z',
+				'Y': 'y'
+			};
+		
+			let outputText = '';
+			for (let i = 0; i < lineCount; i++) {
+				let gatesApplied = lines[i].replace(/[HIXYZ]/g, match => gateMappings[match] + ` q[${i}];\n`).trim();
+				outputText += gatesApplied + '\n';
+			}
+			// Concatenate OpenQASM header, qubit and classical bit declarations, and gate code
+			let openQASMHeader = 'OPENQASM 3.0;\ninclude "stdgates.inc";\n';
+			outputText = openQASMHeader + qubitDeclarations + cbitDeclarations + outputText;
+			
+		
+			// Add measurement statements for each qubit
+			let measurementStatements = '';
+			for (let i = 0; i < lineCount; i++) {
+				measurementStatements += `measure q[${i}] = c[${i}];\n`;
+			}
+		
+			// outputText = outputText.replace(new RegExp(inputText, 'g'), '');
+			
+			// Display the converted code in a separate textarea or console.log it
+			document.getElementById('outputTextarea').value = outputText + '\n' + measurementStatements;
+
+
+
+
+			
+
+		}
+		
+		// ferdous
+
+		kamkar = function() {
+            var myVariable = document.getElementById('playground-input').value;
+            var encodedVariable = encodeURIComponent(myVariable);
+            var newPageUrl = 'qoromOnCloud.html?data=' + encodedVariable;
+            window.open(newPageUrl, '_blank');
+        }
+		
+		</script>
+	</body>
+</html>

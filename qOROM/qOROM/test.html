@@ -1,0 +1,65 @@
+<body>
+    <textarea name="text" id="inputTextarea" cols="30" rows="10">H-I-H-X
+H-Z-Y-I
+    </textarea>
+    <button type="submit" onclick="convertToOpenQASM()">Run</button>
+    <textarea name="output" id="outputTextarea" style="font-size: large;" cols="30" rows="10"></textarea>
+</body>
+<script>
+    function convertToOpenQASM() {
+    // Get the input text from the textarea
+    let inputText = document.getElementById('inputTextarea').value;
+    inputText = inputText.replace(/-/g, '');
+    console.log(inputText)
+   
+    // Split the input text into lines
+    let lines = inputText.split(/\r\n|\r|\n/); 
+    
+    // Remove empty lines and lines containing only whitespace
+    lines = lines.filter(line => line.trim() !== '');
+    console.log(lines)
+
+    // Count the number of non-empty lines
+    let lineCount = lines.length;
+
+    // Generate qubits and classical bits based on the line count
+    let qubitDeclarations = '';
+    let cbitDeclarations = '';
+    for (let i = 0; i < lineCount; i++) {
+        qubitDeclarations += `qubit q[${i}];\n`;
+        cbitDeclarations += `bit c[${i}];\n`;
+    }
+
+    // Define the OpenQASM gate mappings
+    const gateMappings = {
+        'H': 'h',
+        'I': 'id',
+        'X': 'x',
+        'Z': 'z',
+        'Y': 'y'
+    };
+
+    let outputText = '';
+    for (let i = 0; i < lineCount; i++) {
+        let gatesApplied = lines[i].replace(/[HIXYZ]/g, match => gateMappings[match] + ` q[${i}];\n`).trim();
+        outputText += gatesApplied + '\n';
+    }
+    // Concatenate OpenQASM header, qubit and classical bit declarations, and gate code
+    let openQASMHeader = 'OPENQASM 3.0;\ninclude "stdgates.inc";\n';
+    outputText = openQASMHeader + qubitDeclarations + cbitDeclarations + outputText;
+    
+
+    // Add measurement statements for each qubit
+    let measurementStatements = '';
+    for (let i = 0; i < lineCount; i++) {
+        measurementStatements += `measure q[${i}] = c[${i}];\n`;
+    }
+
+    // outputText = outputText.replace(new RegExp(inputText, 'g'), '');
+    
+    // Display the converted code in a separate textarea or console.log it
+    document.getElementById('outputTextarea').value = outputText + '\n' + measurementStatements;
+}
+
+
+</script>
